@@ -84,14 +84,73 @@ public:
     vector<int> properties;
 };
 
+class LoadIC {
+public:
+    LoadIC(string k) : key(k), map(nullptr), index(-1) {}
+
+    int ic_load(JsObject* o, string k){
+        if(o == nullptr) abort();
+        if(map == o->map){
+            return o->properties[index];
+            
+        }
+        else {
+            map = o->map;
+            index = o->map->findIndex(k);
+            if(index == -1) abort();
+            return o->load(k);
+        }
+    }
+
+    string key;
+    JsClass* map;
+    int index;
+};
+
+class StoreIC {
+public:
+    StoreIC(string k) : key(k), map(nullptr), index(-1) {}
+
+    void ic_store(JsObject* o, string k, int value){
+        if(o == nullptr) abort();
+        if(map == o->map){
+            o->properties[index] = value;
+        }
+        else {
+            map = o->map;
+            index = o->map->findIndex(k);
+            if(index == -1) abort();
+            o->properties[index] = value;
+        }
+    }
+
+    string key;
+    JsClass* map;
+    int index;
+};
+
 
 int main(){
     maps = (JsClass*) malloc(sizeof(JsClass) * 100000);
     maps[0] = JsClass();
     JsClass* A = maps[0].transfer("a");
     JsObject a = JsObject(A);
+    clock_t start, end;
 
-    clock_t start = clock();
+    LoadIC a_load = LoadIC("a");
+    StoreIC a_store = StoreIC("a");
+    start = clock();
+    for(int i = 0; i < 10000000; i ++){
+        a_store.ic_store(&a, "a", i);
+        if(a_load.ic_load(&a, "a") != i){
+            printf("error!\n");
+            abort();
+        }
+    }
+    end = clock();
+    printf("IC: %f seconds\n",(double)(end-start)/CLOCKS_PER_SEC);
+
+    start = clock();
     for(int i = 0; i < 10000000; i ++){
         a.store("a", i);
         if(a.load("a") != i){
@@ -99,8 +158,8 @@ int main(){
             abort();
         }
     }
-    clock_t end = clock();
-    printf("%f seconds\n",(double)(end-start)/CLOCKS_PER_SEC);
+    end = clock();
+    printf("No IC: %f seconds\n",(double)(end-start)/CLOCKS_PER_SEC);
 
     return 0;
 }
