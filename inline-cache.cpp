@@ -68,6 +68,10 @@ public:
         properties.resize(map->keys.size());
     }
 
+    JsObject() : map(&maps[0]) {
+        properties.resize(map->keys.size());
+    }
+
     int load(string k){
         int index = map->findIndex(k);
         if(index == -1) abort();
@@ -76,7 +80,12 @@ public:
 
     void store(string k, int v){
         int index = map->findIndex(k);
-        if(index == -1) abort();
+        if(index == -1) {
+            // transit to another map.
+            map = map->transfer(k);
+            index = map->findIndex(k);
+            properties.resize(map->keys.size());
+        }
         properties[index] = v;
     }
 
@@ -133,8 +142,9 @@ public:
 int main(){
     maps = (JsClass*) malloc(sizeof(JsClass) * 100000);
     maps[0] = JsClass();
-    JsClass* A = maps[0].transfer("a");
-    JsObject a = JsObject(A);
+
+    JsObject a = JsObject();
+    a.store("a", 0);
     clock_t start, end;
 
     LoadIC a_load = LoadIC("a");
